@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount};
-use std::collections::HashMap;
+use anchor_spl::token::Token;
 
 declare_id!("DTNMdyYqzgB7qu53RU6vVyhdERLAWvQKWZHnuAJ2d7k4");
+
+const COMMISSION: f64 = 0.01;
 
 #[account]
 pub struct State {
@@ -134,7 +135,7 @@ pub mod spotify_donations_contract {
 
         require!(state.owner == *ctx.accounts.from.key, ErrorCode::MustBeOwner);
 
-        let balance = state.account_withdraw_balances.iter_mut().find(|(id, _)| id == &account_id).expect("Account not found").1;
+        let mut balance = state.account_withdraw_balances.iter_mut().find(|(id, _)| id == &account_id).expect("Account not found").1;
 
         if balance == 0 { return Ok(());}
 
@@ -146,6 +147,8 @@ pub mod spotify_donations_contract {
         
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+
+        balance = ((1.0 - COMMISSION) * balance as f64) as u64;
         token::transfer(cpi_ctx, balance)?;
 
         let withdraw_balance = state.account_withdraw_balances.iter_mut().find(|(id, _)| id == &account_id).expect("Account not found");
