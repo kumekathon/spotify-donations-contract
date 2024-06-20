@@ -7,8 +7,8 @@ const COMMISSION: f64 = 0.01;
 
 #[account]
 pub struct State {
-    pub account_donate_balances: Vec<(String, u64)>, // Replace BTreeMap with Vec
-    pub account_withdraw_balances: Vec<(String, u64)>, // Replace BTreeMap with Vec
+    pub account_donate_balances: Vec<(String, u64)>, 
+    pub account_withdraw_balances: Vec<(String, u64)>, 
     pub owner: Pubkey,
 }
 
@@ -56,10 +56,16 @@ pub struct Withdraw<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(Accounts)]
+pub struct Income<'info> {
+    #[account(mut)]
+    pub state: Account<'info, State>,
+}
+
 #[derive(AnchorDeserialize, AnchorSerialize)]
 pub struct DistributionTokens {
     pub account_id: String,
-    pub distribution: Vec<(String, f32)>, // Replace HashMap with Vec
+    pub distribution: Vec<(String, f32)>, 
 }
 
 #[error_code]
@@ -135,7 +141,10 @@ pub mod spotify_donations_contract {
 
         require!(state.owner == *ctx.accounts.from.key, ErrorCode::MustBeOwner);
 
-        let mut balance = state.account_withdraw_balances.iter_mut().find(|(id, _)| id == &account_id).expect("Account not found").1;
+        let mut balance = state.account_withdraw_balances
+            .iter_mut()
+            .find(|(id, _)| id == &account_id)
+            .expect("Account not found").1;
 
         if balance == 0 { return Ok(());}
 
@@ -155,5 +164,16 @@ pub mod spotify_donations_contract {
         withdraw_balance.1 = 0;
 
         Ok(())
+    }
+
+    pub fn get_income(ctx: Context<Income>, account_id: String) -> Result<u64> {
+        let state = &mut ctx.accounts.state;
+
+        let balance = state.account_withdraw_balances
+            .iter_mut()
+            .find(|(id, _)| id == &account_id)
+            .expect("Account not found").1;
+
+        Ok(balance)
     }
 }
